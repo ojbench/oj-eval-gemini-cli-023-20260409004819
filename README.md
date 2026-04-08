@@ -1,133 +1,26 @@
-# Problem 023 - deque (John Class)
+# Deque Implementation
 
-**ACMOJ Problem ID**: 2642
+## 分裂和合并策略
 
-## Table of Contents
+本实现采用了分块链表（Unrolled Linked List）的数据结构，每个块（Node）内部使用循环数组来存储元素。
 
-- [Problem 023 - deque (John Class)](#problem-023-deque-john-class)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-    - [Background](#background)
-  - [Assignment Description](#assignment-description)
-    - [Grade Composition](#grade-composition)
-  - [Assignment Requirements](#assignment-requirements)
-    - [Input Format](#input-format)
-    - [Output Format](#output-format)
-    - [Samples](#samples)
-    - [Data Constraints](#data-constraints)
-  - [Per-Testcase Resource Limits](#per-testcase-resource-limits)
-  - [Test Data](#test-data)
-  - [Submission Requirements](#submission-requirements)
-    - [OJ Git Repository Compilation Process](#oj-git-repository-compilation-process)
-    - [Git Configuration Requirements](#git-configuration-requirements)
-    - [Submission Guidelines](#submission-guidelines)
-    - [Evaluation Notes](#evaluation-notes)
-    - [Academic Integrity](#academic-integrity)
+### 分裂策略 (Split)
+- **触发条件**：当某个块的元素数量达到 `MAX_BLOCK_SIZE`（本实现中设为 500）时，触发分裂操作。
+- **操作过程**：将该块的后半部分（即 `size / 2` 到 `size - 1` 的元素）移动到一个新创建的块中，并将新块插入到当前块的后面。当前块的 `size` 更新为原来的一半。
+- **时间复杂度**：分裂操作需要移动约 `MAX_BLOCK_SIZE / 2` 个元素，时间复杂度为 $O(B)$，其中 $B$ 为块大小。由于只有在插入了 $O(B)$ 个元素后才会触发一次分裂，因此均摊时间复杂度为 $O(1)$。
 
-## Introduction
+### 合并策略 (Merge)
+- **触发条件**：当某个块因为删除元素导致其与相邻块（前一个或后一个）的元素总数小于等于 `MAX_BLOCK_SIZE * 0.75`（即 375）时，触发合并操作。如果某个块的元素数量变为 0 且不是唯一的块，则直接删除该块。
+- **操作过程**：将后一个块的所有元素追加到前一个块的末尾，然后从链表中移除并销毁后一个块。
+- **时间复杂度**：合并操作需要移动最多 `MAX_BLOCK_SIZE * 0.75` 个元素，时间复杂度为 $O(B)$。由于只有在删除了 $O(B)$ 个元素后才会触发一次合并，因此均摊时间复杂度为 $O(1)$。
 
-### Background
+## 时间复杂度分析
 
-Implement STL-like deque. Git project.
+- **头尾插入/删除 (`push_front`, `push_back`, `pop_front`, `pop_back`)**：
+  由于块内部采用循环数组，在块未满或未空时，头尾操作只需移动头尾指针并构造/析构元素，时间复杂度为 $O(1)$。当块满或空时，会触发新建块或删除块操作，这也是 $O(1)$ 的。因此均摊时间复杂度为 $O(1)$。
 
-## Assignment Description
+- **随机访问 (`at`, `operator[]`)**：
+  需要从头节点开始遍历链表，跳过前面的块直到找到目标元素所在的块。最坏情况下需要遍历所有的块。块的最大数量约为 $N / (B/2) = 2N/B$。因此时间复杂度为 $O(N/B)$。取 $B = \sqrt{N}$ 时，时间复杂度为 $O(\sqrt{N})$。在本实现中 $B=500$，对于 $N=10^5$，最多遍历 400 个块，效率极高。
 
-### Grade Composition
-
-| Grading Component | Percentage |
-| :--: | :--: |
-| Pass **2642. deque (John Class)** | 80% |
-| Code Review | 20% |
-
-Here are several points that need clarification:
-
-- In the Code Review, we will **strictly examine your code style and repository organization structure, etc.**
-
-- This assignment provides some sample data for testing, stored in the `/workspace/data/023/data_test/` directory. Note that these are not the test cases on the Online Judge. Passing all local test cases does not guarantee that you will pass the OJ tests.
-
-- Besides the provided sample data, we also encourage you to design your own test data based on your program logic to assist debugging.
-
-## Assignment Requirements
-
-### Problem Description
-
-见 github 仓库：https://github.com/SJTUJohnClass/deque
-
-### Input Format
-
-See the problem description above.
-
-### Output Format
-
-See the problem description above.
-
-### Samples
-
-No sample data provided for this problem.
-
-### Data Constraints
-
-See the problem description for constraints.
-
-## Per-Testcase Resource Limits
-
-- **Time Limit (per test case)**: 65000 ms
-- **Memory Limit (per test case)**: 1536 MiB
-- **Disk Usage**: No disk usage is permitted.
-
-## Test Data
-
-The test data for this problem is located at `/workspace/data/023/data_test/`.
-
-## Submission Requirements
-
-### OJ Git Repository Compilation Process
-
-For Git compilation, we will first clone the repository using a command similar to:
-```bash
-git clone <repo_url> . --depth 1 --recurse-submodules --shallow-submodules --no-local
-```
-
-Then we check if there is a `CMakeLists.txt` file. If it exists, we run (if not, a warning message will be displayed):
-```bash
-cmake .
-```
-
-Finally, we check if there is any of `GNUmakefile`/`makefile`/`Makefile` (if cmake was run previously, this will be the generated Makefile). If it exists, we run (if not, a warning message will be displayed):
-```bash
-make
-```
-
-After this process is complete, we will use the `code` file in the project root directory as the compilation result.
-
-A `CMakeLists.txt` file is provided in the project. You can use or modify it as needed. The local environment has gcc-13 and g++-13 available.
-
-### Git Configuration Requirements
-
-**IMPORTANT**: You must create a `.gitignore` file in your project root directory to avoid OJ evaluation conflicts.
-
-The `.gitignore` file should include at least the following entries:
-
-```gitignore
-CMakeFiles/
-CMakeCache.txt
-```
-
-### Submission Guidelines
-
-- The submitted code must be able to compile successfully through the above compilation process
-- The compiled executable file name must be `code`
-- The program needs to be able to read data from standard input and write results to standard output
-- Please ensure the code runs correctly within the given time and space limits
-- **You must use C++ or C language** to implement this assignment
-
-### Evaluation Notes
-
-- The evaluation system will test your program using the provided test data
-- The program output must exactly match the expected output (including format)
-- Exceeding time or memory limits will be judged as the corresponding error type
-- Please pay attention to the overall time performance of your code and the time complexity of each part of your algorithm.
-
-### Academic Integrity
-
-If any violations are found during evaluation or code review (including but not limited to using unconventional methods to pass test cases), your final score may be significantly reduced or become **0 points**.
+- **随机插入/删除 (`insert`, `erase`)**：
+  首先需要花费 $O(N/B)$ 的时间定位到目标块。然后在块内部进行元素的移动，最坏情况下需要移动 $B$ 个元素，时间复杂度为 $O(B)$。插入或删除后可能触发分裂或合并，均摊时间复杂度为 $O(B)$。因此总的时间复杂度为 $O(N/B + B)$。取 $B = \sqrt{N}$ 时，时间复杂度为 $O(\sqrt{N})$。
